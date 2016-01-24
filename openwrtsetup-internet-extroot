@@ -1,0 +1,183 @@
+mtd -r erase rootfs_data
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+telnet 192.168.1.1
+passwd
+sync
+reboot -f
+
+((( FROM HERE ON COPY ALL AT ONCE BETWEEN THE OOOOO AND PASTE IT IN TERMINAL )))
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh-keygen -f "/home/pi/.ssh/known_hosts" -R 192.168.1.1
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+cat <<EOF > /etc/config/network
+
+config interface 'loopback'
+  option ifname 'lo'
+  option proto 'static'
+  option ipaddr '127.0.0.1'
+  option netmask '255.0.0.0'
+
+config globals 'globals'
+  option ula_prefix 'fd97:8d14:de85::/48'
+
+config interface 'lan'
+  option ifname 'eth0.1'
+  option force_link '1'
+  option type 'bridge'
+  option proto 'static'
+  option ipaddr '192.168.1.1'
+  option netmask '255.255.255.0'
+  option gateway '192.168.1.10'
+  option dns '192.168.1.10'
+  option ip6assign '60'
+
+config switch
+  option name 'eth0'
+  option reset '1'
+  option enable_vlan '1'
+
+config switch_vlan
+  option device 'eth0'
+  option vlan '1'
+  option ports '0 1 2 3 8t'
+
+EOF
+cat <<EOF > /etc/config/wireless 
+
+config wifi-device 'radio0'
+  option type 'mac80211'
+  option channel '11'
+  option hwmode '11g'
+  option path 'pci0000:00/0000:00:01.0'
+  option htmode 'HT20'
+  option txpower '20'
+  option country '00'
+
+config wifi-iface
+  option device 'radio0'
+  option network 'lan'
+  option mode 'ap'
+  option ssid 'imsmxvow'
+  option encryption 'psk-mixed'
+  option key 'PASSWORD'
+
+EOF
+sync
+reboot -f
+
+
+# For lan change gateway, dns
+# For wifi change ssid, key
+# Rebooting so that internet packeges can be downloaded
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+df -h /
+opkg update
+opkg install blkid block-mount e2fsprogs fdisk lsblk kmod-usb-storage kmod-usb-storage-extras kmod-fs-ext4 kmod-fs-vfat mkdosfs nano ntfs-3g resize2fs tune2fs
+sync
+df -h /
+reboot -f
+
+
+# What installed packages do:
+#  - beginner text editor: nano
+#  - recognize usb hubs, sticks, harddisks and cards: kmod-usb-storage kmod-usb-storage-extras
+#  - mounting ext4, vfat filesystems: block-mount kmod-fs-ext4 kmod-fs-vfat lsblk
+#  - create, modify ext4, vfat filesystems: e2fsprogs fdisk mkdosfs resize2fs tune2fs
+#  - mounting (not creating) ntfs filesystems: ntfs-3g
+
+# Packages that are too big (high risk of out of space): mc snort transmission ntfsprogs
+# and they need to be chosen carefully if needed
+
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ifconfig -a
+
+# Shows MAC addresses especially
+
+cat /proc/mounts
+
+# The filesystem for OpenWRT's initial overlay (writable root) is jffs2
+# jffs2 uses compression and the more you write in one go the more compression
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+((( STOP OR INSERT USB MASS STORAGE DEVICE WILL BE ERASED TO MAKE AN EXTROOT )))
+
+swapoff /dev/sda1
+swapoff /dev/sda2
+swapoff /dev/sda3
+umount /dev/sda
+umount /dev/sda1
+umount /dev/sda2
+umount /dev/sda3
+dd if=/dev/zero of=/dev/sda bs=1M count=32
+mke2fs -t ext4 -m 0 -F -L EXTRWRT -E lazy_itable_init=0,lazy_journal_init=0 /dev/sda
+mount -t ext4 /dev/sda /mnt
+tar -C /overlay -cvf - . | tar -C /mnt -xf -
+dd if=/dev/zero of=/mnt/upper/swapfile bs=1M count=128
+mkswap /mnt/upper/swapfile
+mkdir -p /mnt/upper/overlay-boot
+block detect > /etc/config/fstab
+sed -i 's/\/mnt\/sda/\/overlay/g' /etc/config/fstab
+cat <<EOF >> mnt/upper/etc/config/fstab
+config 'swap'
+        option  device  '/swapfile'
+        option  enabled '1'
+
+config 'mount'
+  option  target  /overlay-boot
+  option  device  /dev/mtdblock3
+  option  fstype  jffs2
+  option  options  rw,sync
+  option  enabled  '1'
+  option  enabled_fsck  0
+
+EOF
+umount /mnt
+nano /etc/config/fstab
+
+
+# sed command with \x20 and \x27 does not work - make all enabled '0' be enabled '1'
+
+# to restore back put enabled '0' in /overlay-boot/etc/config/fstab
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+sync
+reboot -f
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+echo option force_space >> /etc/opkg.conf
+df -h /
+
+# More space available (128 MB are swapfile)
+
+free -m
+
+# Swap available (don't trash it too much - no programs needing a lot of ram)
+
+# If you are on usb hub with your extroot you can insert other media safely uuid
+
