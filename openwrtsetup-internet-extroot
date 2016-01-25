@@ -137,7 +137,7 @@ mkswap /mnt/upper/swapfile
 mkdir -p /mnt/upper/overlay-boot
 block detect > /etc/config/fstab
 sed -i 's/\/mnt\/sda/\/overlay/g' /etc/config/fstab
-cat <<EOF >> mnt/upper/etc/config/fstab
+cat <<EOF >> /mnt/upper/etc/config/fstab
 config 'swap'
         option  device  '/swapfile'
         option  enabled '1'
@@ -150,6 +150,15 @@ config 'mount'
   option  enabled  '1'
   option  enabled_fsck  0
 
+EOF
+cat <<EOF >> /mnt/upper/etc/sysctl.conf
+vm.swappiness = 60
+vm.min_free_kbytes = 8192
+vm.vfs_cache_pressure = 500
+vm.dirty_bytes = 8388608
+vm.dirty_background_bytes = 8388608
+vm.dirty_writeback_centisecs = 600
+vm.dirty_expire_centisecs = 600
 EOF
 umount /mnt
 nano /etc/config/fstab
