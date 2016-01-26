@@ -153,10 +153,10 @@ config 'mount'
 EOF
 cat <<EOF >> /mnt/upper/etc/sysctl.conf
 vm.swappiness = 60
-vm.min_free_kbytes = 8192
+vm.min_free_kbytes = 2048
 vm.vfs_cache_pressure = 500
-vm.dirty_bytes = 8388608
-vm.dirty_background_bytes = 8388608
+vm.dirty_bytes = 2097152
+vm.dirty_background_bytes = 2097152
 vm.dirty_writeback_centisecs = 600
 vm.dirty_expire_centisecs = 600
 EOF
