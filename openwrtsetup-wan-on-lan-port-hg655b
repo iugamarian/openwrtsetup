@@ -1,0 +1,250 @@
+How /etc/config/network is configured:
+
+On routers with WAN written on them - [ WAN LAN1 LAN2 LAN3 LAN4 ] with LAN1 to 
+LAN4 in a switch meaning network intercommunication without packet noise not
+button - OpenWRT cares only about the reset button - the rest configure text.
+
+On HG655B with WAN on a DSL that is not supported by OpenWRT because of closed
+license for DSL protocol - [ LAN1 LAN2 LAN3 LAN4 ] and we need LAN1 to become
+a WAN (or another port to become a WAN)
+So we cut the switch in two switches:
+   - switch 1 = [ LAN2 LAN3 LAN4 ]
+   - switch 2 = [ LAN1 ]
+It must also be noted how /etc/config/network considers stuff:
+  a) the switch is a single unit named eth0, similar to a MBR on a harddisk
+  b) the switch unit is partitioned with "switch_vlan" similar to a harddisk
+  c) in the routers with WAN on them only one partition similar to C drive
+  d) in HG655B the switches are identified by, similar to c drive and d drive:
+     option vlan '1'
+     option vlan '2'
+  e) the identified switches are addressed in an interface section by the name
+     of the switches plus "." plus the vlan value:
+     vlan '1' --- eth0.1
+     vlan '2' --- eth0.2
+  f) every interface gets it's own separate MAC address from software, only
+  /etc/config/wireless actually reads the hardware MAC address for wifi card
+  g) in order for everything to work the wireless MAC address must be forced
+  on all other interfaces, similar to a harddisk serial number for all
+  h) /etc/config/network starts numerotation of ports from zero
+     LAN1 --- 0
+     LAN2 --- 1
+     LAN3 --- 2
+     LAN4 --- 3
+  g) after specifying the ports in the switches you add " 8t" for some reason...
+  e) for compatibility you need to add a "@wan6" which provides ipv6 for pppoe,
+     better just be there:
+     - if needed, used
+     - if not needed, ignored, Chaos Calmer and later
+     
+     
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+mtd -r erase rootfs_data
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+telnet 192.168.1.1
+passwd
+sync
+reboot -f
+
+((( FROM HERE ON COPY ALL AT ONCE BETWEEN THE OOOOO AND PASTE IT IN TERMINAL )))
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh-keygen -f "/home/pi/.ssh/known_hosts" -R 192.168.1.1
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+cat <<EOF > /etc/config/network
+config interface 'loopback'
+   option ifname 'lo'
+   option proto 'static'
+   option ipaddr '127.0.0.1'
+   option netmask '255.0.0.0'
+
+config globals 'globals'
+   option ula_prefix 'fd97:8d14:de85::/48'
+
+config interface 'lan'
+   option ifname 'eth0.1'
+   option force_link '1'
+   option type 'bridge'
+   option proto 'static'
+   option ipaddr '192.168.1.1'
+   option netmask '255.255.255.0'
+   option ip6assign '60'
+   option macaddr 'XX:XX:XX:XX:XX:XX'
+
+config switch
+   option name 'eth0'
+   option reset '1'
+   option enable_vlan '1'
+
+config switch_vlan
+   option device 'eth0'
+   option vlan '1'
+   option ports '1 2 3 8t'
+
+config switch_vlan
+   option device 'eth0'
+   option vlan '2'
+   option ports '0 8t'
+
+config interface 'wan'
+   option proto 'pppoe'
+   option ifname 'eth0.2'
+   option username 'USERPPP'
+   option password 'PASSWORDPPP'
+   option mtu '1452'
+   option macaddr 'XX:XX:XX:XX:XX:XX'
+   option ipv6 '1'
+
+config interface 'wan6'
+   option ifname '@wan'
+   option proto 'dhcpv6'
+   option macaddr 'XX:XX:XX:XX:XX:XX'
+EOF
+cat <<EOF > /etc/config/wireless 
+
+config wifi-device 'radio0'
+  option type 'mac80211'
+  option channel '11'
+  option hwmode '11g'
+  option path 'pci0000:00/0000:00:01.0'
+  option htmode 'HT20'
+  option txpower '20'
+  option country '00'
+
+config wifi-iface
+  option device 'radio0'
+  option network 'lan'
+  option mode 'ap'
+  option ssid 'imsmxvow'
+  option encryption 'psk-mixed'
+  option key 'PASSWORD'
+EOF
+sync
+reboot -f
+
+
+# Change mac address from Luci wireless information after you enable it, or
+# from the paper printed on the back of the router, pppoe username and password
+# For wifi change ssid, key
+# Rebooting so that internet packeges can be downloaded, better to clean ram
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+df -h /
+opkg update
+opkg install blkid block-mount e2fsprogs fdisk lsblk kmod-usb-storage kmod-usb-storage-extras kmod-fs-ext4 kmod-fs-vfat mkdosfs nano ntfs-3g resize2fs tune2fs
+sync
+df -h /
+reboot -f
+
+
+# What installed packages do:
+#  - beginner text editor: nano
+#  - recognize usb hubs, sticks, harddisks and cards: kmod-usb-storage kmod-usb-storage-extras
+#  - mounting ext4, vfat filesystems: block-mount kmod-fs-ext4 kmod-fs-vfat lsblk
+#  - create, modify ext4, vfat filesystems: e2fsprogs fdisk mkdosfs resize2fs tune2fs
+#  - mounting (not creating) ntfs filesystems: ntfs-3g
+
+# Packages that are too big (high risk of out of space): mc snort transmission ntfsprogs
+# and they need to be chosen carefully if needed
+
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ifconfig -a
+
+# Shows MAC addresses especially
+
+cat /proc/mounts
+
+# The filesystem for OpenWRT's initial overlay (writable root) is jffs2
+# jffs2 uses compression and the more you write in one go the more compression
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+((( STOP OR INSERT USB MASS STORAGE DEVICE WILL BE ERASED TO MAKE AN EXTROOT )))
+
+swapoff /dev/sda1
+swapoff /dev/sda2
+swapoff /dev/sda3
+umount /dev/sda
+umount /dev/sda1
+umount /dev/sda2
+umount /dev/sda3
+dd if=/dev/zero of=/dev/sda bs=1M count=32
+mke2fs -t ext4 -m 0 -F -L EXTRWRT -E lazy_itable_init=0,lazy_journal_init=0 /dev/sda
+mount -t ext4 /dev/sda /mnt
+tar -C /overlay -cvf - . | tar -C /mnt -xf -
+dd if=/dev/zero of=/mnt/upper/swapfile bs=1M count=128
+mkswap /mnt/upper/swapfile
+mkdir -p /mnt/upper/overlay-boot
+block detect > /etc/config/fstab
+sed -i 's/\/mnt\/sda/\/overlay/g' /etc/config/fstab
+cat <<EOF >> /mnt/upper/etc/config/fstab
+config 'swap'
+        option  device  '/swapfile'
+        option  enabled '1'
+
+config 'mount'
+  option  target  /overlay-boot
+  option  device  /dev/mtdblock3
+  option  fstype  jffs2
+  option  options  rw,sync
+  option  enabled  '1'
+  option  enabled_fsck  0
+
+EOF
+cat <<EOF >> /mnt/upper/etc/sysctl.conf
+vm.swappiness = 60
+vm.min_free_kbytes = 2048
+vm.vfs_cache_pressure = 500
+vm.dirty_bytes = 2097152
+vm.dirty_background_bytes = 2097152
+vm.dirty_writeback_centisecs = 600
+vm.dirty_expire_centisecs = 600
+EOF
+umount /mnt
+nano /etc/config/fstab
+
+
+# sed command with \x20 and \x27 does not work - make all enabled '0' be enabled '1'
+
+# to restore back put enabled '0' in /overlay-boot/etc/config/fstab
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+sync
+reboot -f
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+echo option force_space >> /etc/opkg.conf
+df -h /
+
+# More space available (128 MB are swapfile)
+
+free -m
+
+# Swap available (don't trash it too much - no programs needing a lot of ram)
+
+# If you are on usb hub with your extroot you can insert other media safely uuid
+
+# PPPOE INTERNET WORKS - TESTED
