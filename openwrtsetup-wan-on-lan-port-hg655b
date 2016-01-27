@@ -30,8 +30,8 @@ It must also be noted how /etc/config/network considers stuff:
      LAN2 --- 1
      LAN3 --- 2
      LAN4 --- 3
-  g) after specifying the ports in the switches you add " 8t" for some reason...
-  e) for compatibility you need to add a "@wan6" which provides ipv6 for pppoe,
+  i) after specifying the ports in the switches you add " 8t" for some reason...
+  j) for compatibility you need to add a "@wan6" which provides ipv6 for pppoe,
      better just be there:
      - if needed, used
      - if not needed, ignored, Chaos Calmer and later
