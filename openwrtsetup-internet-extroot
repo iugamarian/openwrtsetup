@@ -17,67 +17,60 @@ ssh root@192.168.1.1
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 cat <<EOF > /etc/config/network
-
 config interface 'loopback'
-  option ifname 'lo'
-  option proto 'static'
-  option ipaddr '127.0.0.1'
-  option netmask '255.0.0.0'
+        option ifname 'lo'
+        option proto 'static'
+        option ipaddr '127.0.0.1'
+        option netmask '255.0.0.0'
 
 config globals 'globals'
-  option ula_prefix 'fd97:8d14:de85::/48'
+        option ula_prefix 'fd91:1d9f:f511::/48'
 
 config interface 'lan'
-  option ifname 'eth0.1'
-  option force_link '1'
-  option type 'bridge'
-  option proto 'static'
-  option ipaddr '192.168.1.1'
-  option netmask '255.255.255.0'
-  option gateway '192.168.1.10'
-  option dns '192.168.1.10'
-  option ip6assign '60'
+        option ifname 'eth0'
+        option force_link '1'
+        option type 'bridge'
+        option proto 'static'
+        option ipaddr '192.168.1.30'
+        option netmask '255.255.255.0'
+        option ip6assign '60'
+
+config interface 'wan'
+        option ifname 'eth1'
+        option proto 'pppoe'
+        option username 'USERPPP'
+        option password 'PASSWORDPPP'
+        option mtu '1452'
+        option ipv6 '1'
+
+config interface 'wan6'
+        option ifname '@wan'
+        option proto 'dhcpv6'
 
 config switch
-  option name 'eth0'
-  option reset '1'
-  option enable_vlan '1'
+        option name 'switch0'
+        option reset '1'
+        option enable_vlan '1'
 
 config switch_vlan
-  option device 'eth0'
-  option vlan '1'
-  option ports '0 1 2 3 8t'
-
+        option device 'switch0'
+        option vlan '1'
+        option ports '0 1 2 3 4'
 EOF
-cat <<EOF > /etc/config/wireless 
-
-config wifi-device 'radio0'
-  option type 'mac80211'
-  option channel '11'
-  option hwmode '11g'
-  option path 'pci0000:00/0000:00:01.0'
-  option htmode 'HT20'
-  option txpower '20'
-  option country '00'
-
-config wifi-iface
-  option device 'radio0'
-  option network 'lan'
-  option mode 'ap'
-  option ssid 'imsmxvow'
-  option encryption 'psk-mixed'
+cat <<EOF >> /etc/config/wireless 
   option key 'PASSWORD'
-
 EOF
 sync
 reboot -f
 
 
-# For lan change gateway, dns
-# For wifi change ssid, key
+# Change pppoe username and password
+# For wifi change ssid, key, remove: option disabled 1
 # Rebooting so that internet packeges can be downloaded
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+(( STOP HERE IF df -h REPORTS LESS THAN 3 MB free space ))
 
 ssh root@192.168.1.1
 
@@ -189,4 +182,3 @@ free -m
 # Swap available (don't trash it too much - no programs needing a lot of ram)
 
 # If you are on usb hub with your extroot you can insert other media safely uuid
-
