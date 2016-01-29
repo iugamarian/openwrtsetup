@@ -1,0 +1,12 @@
+cat <<EOF >> /etc/config/firewall
+config redirect
+       option src       wan
+       option src_dport 1-65535
+       option dest      lan
+       option dest_ip   192.168.1.101
+       option proto     tcp
+EOF
+
+# This means you can't forward ports to other ip's - all are used already.
+# Other ip's will have internet but will not be "seen" from the internet
+# for example on canyouseeme.org
