@@ -1,0 +1,145 @@
+# You can put sdcard on dir300 and dir600 both rev b1 (same board, name change to firmware)
+
+# Using https://docs.google.com/document/d/1X3RId3d9MDHeSq82_6cZ_VaBjYVX7T0hU396oFHsEdA/edit?pref=2&pli=1#
+
+### Prepare required stuff
+
+apt-get install subversion build-essential libncurses5-dev zlib1g-dev gawk flex quilt git-core mkisofs openssl*
+svn co svn://svn.openwrt.org/openwrt/branches/chaos_calmer
+git clone https://github.com/Dirry/dir300b1-sdmod-extroot.git
+
+### Script to update gpiommc.c with DIRRY HACK, will be run entire time while make -j*
+
+# At first download from svn there is no gpiommc.c, it is done during make -j*
+# I need to catch it immediately as it appears and update it before gcc grabs it (no checks)
+# This is intensive as it writes continuously four files - damages flash, ssd drives - use harddisk
+# Removing patches as they "see" that they did not have effect and give error (already patched)
+#!/bin/bash
+cat <<EOF >> updategpiommcdirry
+rm ./chaos_calmer/target/linux/generic/patches-3.18/863-gpiommc.patch
+rm ./chaos_calmer/target/linux/generic/patches-3.18/864-gpiommc_configfs_locking.patch
+COUNTERAAA="0"
+COUNTERMAX="21"
+while true
+do
+sleep .05
+echo $COUNTERAAA
+echo ""
+COUNTERAAA=$((COUNTERAAA+1))
+if [ $COUNTERAAA -eq $COUNTERMAX ]
+then
+COUNTERAAA="0"
+fi
+# if directory not available, ignored error, if available, update repeatedly in 50 miliseconds
+cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/toolchain-mipsel_24kec+dsp_gcc-4.8-linaro_uClibc-0.9.33.2/linux-3.18.23/drivers/mmc/host/gpiommc.c
+cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/linux-ramips_rt305x/linux-3.18.23/.pc/generic/864-gpiommc_configfs_locking.patch/drivers/mmc/host/gpiommc.c
+cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/linux-ramips_rt305x/linux-3.18.23/.pc/generic/863-gpiommc.patch/drivers/mmc/host/gpiommc.c
+cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/linux-ramips_rt305x/linux-3.18.23/drivers/mmc/host/gpiommc.c
+done
+EOF
+chmod +x updategpiommcdirry
+
+### Setting up OpenWRT
+cd chaos_calmer
+./scripts/feeds update -a
+./scripts/feeds uninstall kmod-gpio-button-hotplug
+./scripts/feeds uninstall kmod-input-gpio-keys-polled
+./scripts/feeds uninstall kmod-leds-gpio
+./scripts/feeds install -a -p kmod-fs-ext4
+./scripts/feeds install -a -p kmod-mmc-over-gpio
+make defconfig
+make menuconfig
+
+# Configure menuconfig with enter to go in, y for add, n for remove, esc - esc for back, esc...esc - enter to save file:
+# Do not use SPACE bar
+
+Target System: Ralink RT288x/RT3xxx
+Subtarget: RT3x5x/RT5350 based boards
+
+
+    Enable:
+        Kernel Modules -> Filesystem -> kmod-fs-ext4
+        Kernel Modules -> Other modules -> kmod-mmc-over-gpio
+        Kernel Modules -> Other modules -> kmod-mmc-over-gpio -> Configuration
+DI = 9
+DO = 13
+CLK = 8
+CS = 0
+SPI Support -> kmod-mmc-spi
+    Disable:
+        Base system -> block-mount (yes, you will must install block-mount later)
+        Kernel Modules -> USB Support -> ALL, first the one down
+        Kernel Modules -> LED Modules -> kmod-leds-gpio
+        Kernel Modules -> Other modules -> kmod-gpio-button-hotplug
+
+# Configure after ls /dev/mmc* gives results and dmesg | grep "DIRRY" gives results in OpenWrt
+# I use 3300 ohm resistors for sdcard pins signaled with x:  ||x|g|x|v|g|x|x|/
+# x = data or clock or select pins
+# g = ground
+# v = 3.3 V
+# Between g and v added capacitor 1000 uF 6.3 V as without it high risk of crash, reboot
+
+### Compile:
+
+cd chaos_calmer
+make prereq
+# start the script in another terminal: ./updategpiommcdirry
+make -j3
+# stop the script in the other terminal after make -j3 ends: CTRL+C
+
+### Format the card on a pc as root (can have problems on router with formatting)
+
+swapoff /dev/sdc
+umount /dev/sdc
+umount /mnt
+dd if=/dev/zero of=/dev/sdc bs=1M count=16
+mke2fs -t ext4 -m 0 -F -L EXTROOT -E lazy_itable_init=0,lazy_journal_init=0 /dev/sdc
+mount /dev/sdc /mnt
+mkdir -p /mnt/upper/overlay-boot
+dd if=/dev/zero of=/mnt/upper/swapfile bs=1M count=64
+mkswap /mnt/upper/swapfile
+sync
+sleep 2
+umount /mnt
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+mount -t ext4 /dev/mmcblk0 /mnt
+tar -C /overlay -cvf - . | tar -C /mnt -xf -
+# Boot fstab
+block detect > /etc/config/fstab
+sed -i 's/\/mnt\/mmcblk0/\/overlay/g' /etc/config/fstab
+# Extroot fstab
+cat <<EOF >> /mnt/upper/etc/config/fstab
+
+config 'swap'
+   option  device  '/swapfile'
+   option  enabled '1'
+
+config 'mount'
+   option  target  /overlay-boot
+   option  device  /dev/mtdblock6
+   option  fstype  jffs2
+   option  options  rw,sync
+   option  enabled  '1'
+   option  enabled_fsck  0
+EOF
+cat <<EOF >> /mnt/upper/etc/sysctl.conf
+vm.swappiness = 60
+vm.min_free_kbytes = 2048
+vm.vfs_cache_pressure = 500
+vm.dirty_bytes = 2097152
+vm.dirty_background_bytes = 2097152
+vm.dirty_writeback_centisecs = 600
+vm.dirty_expire_centisecs = 600
+EOF
+umount /mnt
+vi /etc/config/fstab
+
+# sed command with \x20 and \x27 does not work - make all enabled '0' be enabled '1'
+# press i, modify, press esc, write ":wq!" enter
+# to restore back, can put enabled '0' at /overlay in /overlay-boot/etc/config/fstab
+
