@@ -7,37 +7,7 @@
 apt-get install subversion build-essential libncurses5-dev zlib1g-dev gawk flex quilt git-core mkisofs openssl*
 svn co svn://svn.openwrt.org/openwrt/branches/chaos_calmer
 git clone https://github.com/Dirry/dir300b1-sdmod-extroot.git
-
-### Script to update gpiommc.c with DIRRY HACK, will be run entire time while make -j*
-
-# At first download from svn there is no gpiommc.c, it is done during make -j*
-# I need to catch it immediately as it appears and update it before gcc grabs it (no checks)
-# This is intensive as it writes continuously four files - damages flash, ssd drives - use harddisk
-# Removing patches as they "see" that they did not have effect and give error (already patched)
-#!/bin/bash
-cat <<EOF >> updategpiommcdirry
-rm ./chaos_calmer/target/linux/generic/patches-3.18/863-gpiommc.patch
-rm ./chaos_calmer/target/linux/generic/patches-3.18/864-gpiommc_configfs_locking.patch
-COUNTERAAA="0"
-COUNTERMAX="21"
-while true
-do
-sleep .05
-echo $COUNTERAAA
-echo ""
-COUNTERAAA=$((COUNTERAAA+1))
-if [ $COUNTERAAA -eq $COUNTERMAX ]
-then
-COUNTERAAA="0"
-fi
-# if directory not available, ignored error, if available, update repeatedly in 50 miliseconds
-cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/toolchain-mipsel_24kec+dsp_gcc-4.8-linaro_uClibc-0.9.33.2/linux-3.18.23/drivers/mmc/host/gpiommc.c
-cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/linux-ramips_rt305x/linux-3.18.23/.pc/generic/864-gpiommc_configfs_locking.patch/drivers/mmc/host/gpiommc.c
-cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/linux-ramips_rt305x/linux-3.18.23/.pc/generic/863-gpiommc.patch/drivers/mmc/host/gpiommc.c
-cat ./dir300b1-sdmod-extroot/gpiommc.c 2>/dev/null > ./chaos_calmer/build_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/linux-ramips_rt305x/linux-3.18.23/drivers/mmc/host/gpiommc.c
-done
-EOF
-chmod +x updategpiommcdirry
+git clone https://github.com/iugamarian/openwrtsetup
 
 ### Setting up OpenWRT
 cd chaos_calmer
@@ -78,6 +48,13 @@ SPI Support -> kmod-mmc-spi
 # g = ground
 # v = 3.3 V
 # Between g and v added capacitor 1000 uF 6.3 V as without it high risk of crash, reboot
+
+### Update gpiommc.c with DIRRY HACK patch
+# done with: diff -Naur ./original/gpiommc.c ./modified/gpiommc.c > 865-gpiommc_dirry_hack.patch
+# and then modified --- and +++ first two lines as in this patch:
+# ./chaos_calmer/target/linux/generic/patches-3.18/864-gpiommc_configfs_locking.patch
+
+cp openwrtsetup/865-gpiommc_dirry_hack.patch ./chaos_calmer/target/linux/generic/patches-3.18/
 
 ### Compile:
 
