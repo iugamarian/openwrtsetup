@@ -2,6 +2,7 @@
 
 # Using https://docs.google.com/document/d/1X3RId3d9MDHeSq82_6cZ_VaBjYVX7T0hU396oFHsEdA/edit?pref=2&pli=1#
 
+
 ### Prepare required stuff
 
 apt-get install subversion build-essential libncurses5-dev zlib1g-dev gawk flex quilt git-core mkisofs openssl*
@@ -9,7 +10,9 @@ svn co svn://svn.openwrt.org/openwrt/branches/chaos_calmer
 git clone https://github.com/Dirry/dir300b1-sdmod-extroot.git
 git clone https://github.com/iugamarian/openwrtsetup
 
+
 ### Setting up OpenWRT
+
 cd chaos_calmer
 ./scripts/feeds update -a
 ./scripts/feeds uninstall kmod-gpio-button-hotplug
@@ -19,6 +22,7 @@ cd chaos_calmer
 ./scripts/feeds install -a -p kmod-mmc-over-gpio
 make defconfig
 make menuconfig
+
 
 # Configure menuconfig with enter to go in, y for add, n for remove, esc - esc for back, esc...esc - enter to save file:
 # Do not use SPACE bar
@@ -36,18 +40,28 @@ DO = 13
 CLK = 8
 CS = 0
 SPI Support -> kmod-mmc-spi
+(Try to also enable package e2fsprogs to be able to mke2fs -t ext4 /dev/mmcblk0 and e2fsck -fy /dev/mmcblk0)
+
     Disable:
         Base system -> block-mount (yes, you will must install block-mount later)
         Kernel Modules -> USB Support -> ALL, first the one down
         Kernel Modules -> LED Modules -> kmod-leds-gpio
         Kernel Modules -> Other modules -> kmod-gpio-button-hotplug
 
-# Configure after ls /dev/mmc* gives results and dmesg | grep "DIRRY" gives results in OpenWrt
-# I use 3300 ohm resistors for sdcard pins signaled with x:  ||x|g|x|v|g|x|x|/
-# x = data or clock or select pins
-# g = ground
-# v = 3.3 V
-# Between g and v added capacitor 1000 uF 6.3 V as without it high risk of crash, reboot
+
+### Upload to existing OpenWrt, common for me (or for first time ....factory.bin with browser)
+
+# find . -name "*600-b1*"
+# ssh root@192.168.1.1
+# free -m
+# exit
+# scp ........sysupgrade.bin root@192.168.1.1:/tmp
+# ssh root@192.168.1.1
+# sysupgrade -v .....sysupgrade.bin
+
+# Close terminal after rebooting
+# Disable network in network manager
+# Enable network in network manager
 
 ### Update gpiommc.c with DIRRY HACK patch
 # done with: diff -Naur ./original/gpiommc.c ./modified/gpiommc.c > 865-gpiommc_dirry_hack.patch
@@ -62,14 +76,17 @@ cd chaos_calmer
 make prereq
 make -j3
 
-### Format the card on a pc as root (can have problems on router with formatting)
+### Script to format the card on a pc as root (can have problems on router with formatting)
 
-swapoff /dev/sdc
-umount /dev/sdc
+# Insert and identify TOBESACRIFICEDSDCARD card with lsblk and specify on first line:
+
+TOBESACRIFICEDSDCARD=/dev/sdwhat
+swapoff $TOBESACRIFICEDSDCARD
+umount $TOBESACRIFICEDSDCARD
 umount /mnt
-dd if=/dev/zero of=/dev/sdc bs=1M count=16
-mke2fs -t ext4 -m 0 -F -L EXTROOT -E lazy_itable_init=0,lazy_journal_init=0 /dev/sdc
-mount /dev/sdc /mnt
+dd if=/dev/zero of=$TOBESACRIFICEDSDCARD bs=1M count=16
+mke2fs -t ext4 -m 0 -F -L EXTROOT -E lazy_itable_init=0,lazy_journal_init=0 $TOBESACRIFICEDSDCARD
+mount $TOBESACRIFICEDSDCARD /mnt
 mkdir -p /mnt/upper/overlay-boot
 dd if=/dev/zero of=/mnt/upper/swapfile bs=1M count=64
 mkswap /mnt/upper/swapfile
@@ -77,11 +94,58 @@ sync
 sleep 2
 umount /mnt
 
+### Prepare hardware adapter
+# With router powered off solder adapter
+# See pictures in:
+# https://docs.google.com/document/d/1X3RId3d9MDHeSq82_6cZ_VaBjYVX7T0hU396oFHsEdA/edit?pref=2&pli=1#
+
+# I use 3300 ohm resistors for sdcard pins signaled with x:  ||x|g|x|v|g|x|x|/
+# x = data or clock or select pins
+# g = ground
+# v = 3.3 V
+# Between g and v added capacitor 1000 uF 6.3 V as without it high risk of crash, reboot
+
+# Insert card in adapter
+# Verify no short circuits or metalic parts near adapter and board
+
+# Power on router
+# Continue after ls /dev/mmc* gives results and dmesg | grep "DIRRY" gives results in OpenWrt
+
+
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 ssh root@192.168.1.1
 
+# Try again until it works, remove key from ssh keyring if key not accepted
+
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+# In OpenWRT ssh session (copy all and paste in terminal at once):
+
+cat <<EOF > /etc/opkg.conf
+dest root /
+dest ram /tmp
+lists_dir ext /var/opkg-lists
+option overlay_root /overlay
+src/gz chaos_calmer_base http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/base
+src/gz chaos_calmer_luci http://downloads.openwrt.org/chaos_calmer/15.05/aramips/rt305x/packages/luci
+src/gz chaos_calmer_packages http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/packages
+src/gz chaos_calmer_routing http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/routing
+src/gz chaos_calmer_telephony http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/telephony
+src/gz chaos_calmer_management http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/management
+option check_signature 1
+option force_space
+EOF
+cat <<EOF >> /etc/sysctl.conf
+vm.swappiness = 60
+vm.min_free_kbytes = 2048
+vm.vfs_cache_pressure = 500
+vm.dirty_bytes = 2097152
+vm.dirty_background_bytes = 2097152
+vm.dirty_writeback_centisecs = 600
+vm.dirty_expire_centisecs = 600
+EOF
+sync
 mount -t ext4 /dev/mmcblk0 /mnt
 tar -C /overlay -cvf - . | tar -C /mnt -xf -
 # Boot fstab
@@ -102,38 +166,55 @@ config 'mount'
    option  enabled  '1'
    option  enabled_fsck  0
 EOF
-cat <<EOF >> /mnt/upper/etc/sysctl.conf
-vm.swappiness = 60
-vm.min_free_kbytes = 2048
-vm.vfs_cache_pressure = 500
-vm.dirty_bytes = 2097152
-vm.dirty_background_bytes = 2097152
-vm.dirty_writeback_centisecs = 600
-vm.dirty_expire_centisecs = 600
-EOF
-cat <<EOF >> /mnt/upper/etc/modules-boot.d/mmc
+cat <<EOF >> /etc/modules-boot.d/mmc
 gpiommc
 mmc_spi
 EOF
-cat <<EOF > /mnt/upper/etc/opkg.conf
-dest root /
-dest ram /tmp
-lists_dir ext /var/opkg-lists
-option overlay_root /overlay
-src/gz chaos_calmer_base http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/base
-src/gz chaos_calmer_luci http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/luci
-src/gz chaos_calmer_packages http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/packages
-src/gz chaos_calmer_routing http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/routing
-src/gz chaos_calmer_telephony http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/telephony
-src/gz chaos_calmer_management http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/management
-option check_signature 1
-option force_space
-EOF
 sync
 umount /mnt
+opkg update
+opkg install block-mount
 vi /etc/config/fstab
+
 
 # sed command with \x20 and \x27 does not work - make all enabled '0' be enabled '1'
 # press i, modify, press esc, write ":wq!" enter
 # to restore back, can put enabled '0' at /overlay in /overlay-boot/etc/config/fstab
+
+### Reboot router (for me it mounts card as root after this):
+
+sync
+reboot -f
+
+# Close terminal after rebooting
+# Disable network in network manager
+# Enable network in network manager
+
+### Check that this worked
+
+df -h /
+df -h
+dmesg | grep mmc
+
+### At this time I install Luci and do a massive opkg software download :D
+
+### Troubleshooting
+
+# Most problems come from DIRRY HACK not reaching the image, this must give results:
+
+dmesg | grep DIRRY
+
+### Restore back to original root if you want or need to
+
+# put enabled '0' at /overlay in /overlay-boot/etc/config/fstab
+
+### Reset button does not work not even for failsafe so don't get locked out of router
+
+# By powering off router and removing corrupt sdcard the rooter boots in original root
+# So don't get locked out of original root :D
+# By connecting to serial port with a Raspblerry Pi you can login if locked out:
+# http://johanbijker.blogspot.ro/2012/07/tp-link-mr3420-serial-connection-with.html
+# So don't corrupt your original root (hard to corrupt if using extroot always)
+# Be careful - original root overlay is in /overlay-boot
+
 
