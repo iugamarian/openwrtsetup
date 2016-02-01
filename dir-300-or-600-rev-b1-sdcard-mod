@@ -60,9 +60,7 @@ cp openwrtsetup/865-gpiommc_dirry_hack.patch ./chaos_calmer/target/linux/generic
 
 cd chaos_calmer
 make prereq
-# start the script in another terminal: ./updategpiommcdirry
 make -j3
-# stop the script in the other terminal after make -j3 ends: CTRL+C
 
 ### Format the card on a pc as root (can have problems on router with formatting)
 
@@ -113,6 +111,25 @@ vm.dirty_background_bytes = 2097152
 vm.dirty_writeback_centisecs = 600
 vm.dirty_expire_centisecs = 600
 EOF
+cat <<EOF >> /mnt/upper/etc/modules-boot.d/mmc
+gpiommc
+mmc_spi
+EOF
+cat <<EOF > /mnt/upper/etc/opkg.conf
+dest root /
+dest ram /tmp
+lists_dir ext /var/opkg-lists
+option overlay_root /overlay
+src/gz chaos_calmer_base http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/base
+src/gz chaos_calmer_luci http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/luci
+src/gz chaos_calmer_packages http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/packages
+src/gz chaos_calmer_routing http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/routing
+src/gz chaos_calmer_telephony http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/telephony
+src/gz chaos_calmer_management http://downloads.openwrt.org/chaos_calmer/15.05/ar71xx/generic/packages/management
+option check_signature 1
+option force_space
+EOF
+sync
 umount /mnt
 vi /etc/config/fstab
 
