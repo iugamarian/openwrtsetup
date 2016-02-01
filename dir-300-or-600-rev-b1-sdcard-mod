@@ -120,10 +120,27 @@ ssh root@192.168.1.1
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+opkg update && opkg install block-mount
+rm /etc/modules-boot.d/mmc 
+sync
+reboot
+
+# This will force priority of mmc before mount-root, together with ln -s down
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+# Try again until it works, remove key from ssh keyring if key not accepted
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+
 # In OpenWRT ssh session (copy all and paste in terminal at once):
 # This exists already (is called from squashfs, add it if not existing for you):
 # src/gz chaos_calmer_base http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/base
 
+cd /etc/modules-boot.d/ && ln -s ../modules.d/mmc mmc
 cat <<EOF > /etc/opkg.conf
 dest root /
 dest ram /tmp
@@ -181,8 +198,6 @@ mmc_spi
 EOF
 sync
 umount /mnt
-opkg update
-opkg install block-mount
 vi /etc/config/fstab
 
 
@@ -199,7 +214,16 @@ reboot -f
 # Disable network in network manager
 # Enable network in network manager
 
+
 ### Check that this worked
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+# Try again until it works, remove key from ssh keyring if key not accepted
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 df -h /
 df -h
