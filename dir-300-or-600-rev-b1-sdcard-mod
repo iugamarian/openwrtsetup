@@ -121,13 +121,14 @@ ssh root@192.168.1.1
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 # In OpenWRT ssh session (copy all and paste in terminal at once):
+# This exists already (is called from squashfs, add it if not existing for you):
+# src/gz chaos_calmer_base http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/base
 
 cat <<EOF > /etc/opkg.conf
 dest root /
 dest ram /tmp
 lists_dir ext /var/opkg-lists
 option overlay_root /overlay
-src/gz chaos_calmer_base http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/base
 src/gz chaos_calmer_luci http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/luci
 src/gz chaos_calmer_packages http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/packages
 src/gz chaos_calmer_routing http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/routing
