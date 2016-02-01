@@ -228,8 +228,16 @@ OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 df -h /
 df -h
 dmesg | grep mmc
+opkg update
+sync
+opkg install transmission-daemon transmission-web samba36-server luci luci-app-samba nano mc swap-utils
+mkdir /torrents
+uci set fstab.@swap[-1].device=/swapfile
+uci set fstab.@swap[-1].enabled=1
+uci commit fstab
+sync
+reboot -f
 
-### At this time I install Luci and do a massive opkg software download :D
 
 ### Troubleshooting
 
