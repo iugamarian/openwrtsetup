@@ -149,10 +149,10 @@ EOF
 sync
 mount -t ext4 /dev/mmcblk0 /mnt
 tar -C /overlay -cvf - . | tar -C /mnt -xf -
-# Boot fstab
-block-detect > /etc/config/fstab
+
+sync
+block detect > /etc/config/fstab
 sed -i 's/\/mnt\/mmcblk0/\/overlay/g' /etc/config/fstab
-# Extroot fstab
 mkdir -p /mnt/upper/etc/config
 cat <<EOF >> /mnt/upper/etc/config/fstab
 
