@@ -164,10 +164,24 @@ vm.dirty_writeback_centisecs = 600
 vm.dirty_expire_centisecs = 600
 EOF
 sync
-mount -t ext4 /dev/mmcblk0 /mnt
-tar -C /overlay -cvf - . | tar -C /mnt -xf -
+reboot -f
 
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+ssh root@192.168.1.1
+
+# Try again until it works, remove key from ssh keyring if key not accepted
+
+OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+
+mount -t ext4 /dev/mmcblk0 /mnt
+mv /mnt/upper/swapfile /mnt
+rm -rf /mnt/upper
+rm -rf /mnt/work
+tar -C /overlay -cvf - . | tar -C /mnt -xf -
 sync
+mv /mnt/swapfile /mnt/upper
 block detect > /etc/config/fstab
 sed -i 's/\/mnt\/mmcblk0/\/overlay/g' /etc/config/fstab
 mkdir -p /mnt/upper/etc/config
