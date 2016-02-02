@@ -181,6 +181,7 @@ rm -rf /mnt/upper
 rm -rf /mnt/work
 tar -C /overlay -cvf - . | tar -C /mnt -xf -
 sync
+mkdir -p /mnt/upper/overlay-boot
 mv /mnt/swapfile /mnt/upper
 block detect > /etc/config/fstab
 sed -i 's/\/mnt\/mmcblk0/\/overlay/g' /etc/config/fstab
