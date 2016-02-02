@@ -12,7 +12,7 @@ git clone https://github.com/Dirry/dir300b1-sdmod-extroot.git
 git clone https://github.com/iugamarian/openwrtsetup
 
 
-### Setting up OpenWRT
+### 1 ### Setting up OpenWRT
 
 
 cd chaos_calmer
@@ -52,7 +52,7 @@ SPI Support -> kmod-mmc-spi
         Kernel Modules -> Other modules -> kmod-gpio-button-hotplug
 
 
-### Upload to existing OpenWrt, common for me (or for first time ....factory.bin with browser)
+### 2 ### Upload to existing OpenWrt, common for me (or for first time ....factory.bin with browser)
 
 # find . -name "*600-b1*"
 # ssh root@192.168.1.1
@@ -67,7 +67,7 @@ SPI Support -> kmod-mmc-spi
 # Enable network in network manager
 
 
-### Update gpiommc.c with DIRRY HACK patch
+### 3 ### Update gpiommc.c with DIRRY HACK patch
 
 
 # done with: diff -Naur ./original/gpiommc.c ./modified/gpiommc.c > 865-gpiommc_dirry_hack.patch
@@ -86,7 +86,7 @@ make prereq
 make -j3
 
 
-### Script to format the card on a pc as root (I have problems on router with formatting, dd - it reboots)
+### 4 ### Script to format the card on a pc as root (I have problems on router with formatting, dd - it reboots)
 
 
 # Run nano scriptowrtsdcard
@@ -110,7 +110,7 @@ sleep 2
 umount /mnt
 
 
-### Prepare hardware adapter
+### 5 ### Prepare hardware adapter
 
 # With router powered off solder adapter
 # See pictures in:
@@ -128,8 +128,7 @@ umount /mnt
 # Power on router
 
 
-
-### Configure router after ...factory.bin or erasing root
+### 6 ### Configure router after ...factory.bin or erasing root
 
 
 telnet 192.168.1.1
@@ -146,24 +145,56 @@ reboot -f
 
 
 # Reboot for factory.bin
+
+
 # Close terminal after rebooting
 # Disable network in network manager
 # Enable network in network manager
 
 
-### Configure router after a sysupgrade (or continue from a factory.bin)
+### 7 ### Configure router after a sysupgrade (or continue from a factory.bin)
+
+
+# This section is very long - do it in order
 
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
 
 ssh root@192.168.1.1
 
+
 # Try again until it works, remove key from ssh keyring if key not accepted
+
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 
+############################################### B E G I N    E R A S E    R O O T
+
+
+# Recommended to erase root because old settings (and errors) are kept after a
+# sysupgrade and if something does not work you don't know if image or old
+# settings are to blame for the problems, also it everything may work ok because
+# of old settings but image may have hidden problems
+
+
+mtd -r erase rootfs_data
+
+
+# Do not power off router and wait two minutes
+
+
+# Close terminal after it says "Rebooting"
+# Disable network in network manager
+# Enable network in network manager
+
+
+############################################### E N D    E R A S E    R O O T
+
+
 # Continue after ls /dev/mmc* gives results and dmesg | grep "DIRRY" gives results in OpenWrt
+# If not you need to fix this first and then go on, without DYRRY mmc is not mounted before root
 
 
 opkg update && opkg install block-mount
@@ -183,9 +214,12 @@ reboot
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+
 ssh root@192.168.1.1
 
+
 # Try again until it works, remove key from ssh keyring if key not accepted
+
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
@@ -233,9 +267,12 @@ reboot -f
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+
 ssh root@192.168.1.1
 
+
 # Try again until it works, remove key from ssh keyring if key not accepted
+
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
@@ -292,7 +329,7 @@ umount /mnt
 # Run swapoff /swapfile && mkswap /swapfile && swapon /swapfile
 
 
-### Final reboot (for me it mounts card as root after this):
+### 8 ### Final reboot (for me it mounts card as root after this):
 
 
 sync
@@ -308,15 +345,20 @@ reboot -f
 # Enable network in network manager
 
 
-### Check that this extroot worked, with swap, and install programs
+### 9 ### Check that this extroot worked, with swap, and install programs
+
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
 
 ssh root@192.168.1.1
 
+
 # Try again until it works, remove key from ssh keyring if key not accepted
 
+
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
 
 free -m
 df -h /
@@ -330,7 +372,7 @@ sync
 reboot -f
 
 
-### Troubleshooting
+### 10 ### Troubleshooting
 
 
 # Most problems come from DIRRY HACK not reaching the image, this must give results:
@@ -350,7 +392,7 @@ sync
 reboot -f
 
 
-### Restore back to original root if you want or need to
+### 11 ### Restore back to original root if you want or need to
 
 
 # put enabled '0' at /overlay in /overlay-boot/upper/etc/config/fstab
