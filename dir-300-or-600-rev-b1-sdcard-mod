@@ -5,6 +5,7 @@
 
 ### Prepare required stuff
 
+
 apt-get install subversion build-essential libncurses5-dev zlib1g-dev gawk flex quilt git-core mkisofs openssl*
 svn co svn://svn.openwrt.org/openwrt/branches/chaos_calmer
 git clone https://github.com/Dirry/dir300b1-sdmod-extroot.git
@@ -12,6 +13,7 @@ git clone https://github.com/iugamarian/openwrtsetup
 
 
 ### Setting up OpenWRT
+
 
 cd chaos_calmer
 ./scripts/feeds update -a
@@ -30,15 +32,16 @@ make menuconfig
 Target System: Ralink RT288x/RT3xxx
 Subtarget: RT3x5x/RT5350 based boards
 
-
     Enable:
         Kernel Modules -> Filesystem -> kmod-fs-ext4
         Kernel Modules -> Other modules -> kmod-mmc-over-gpio
         Kernel Modules -> Other modules -> kmod-mmc-over-gpio -> Configuration
-DI = 9
-DO = 13
-CLK = 8
-CS = 0
+
+    DI = 9
+    DO = 13
+    CLK = 8
+    CS = 0
+
 SPI Support -> kmod-mmc-spi
 (Try to also enable package e2fsprogs to be able to mke2fs -t ext4 /dev/mmcblk0 and e2fsck -fy /dev/mmcblk0)
 
@@ -63,22 +66,34 @@ SPI Support -> kmod-mmc-spi
 # Disable network in network manager
 # Enable network in network manager
 
+
 ### Update gpiommc.c with DIRRY HACK patch
+
+
 # done with: diff -Naur ./original/gpiommc.c ./modified/gpiommc.c > 865-gpiommc_dirry_hack.patch
 # and then modified --- and +++ first two lines as in this patch:
 # ./chaos_calmer/target/linux/generic/patches-3.18/864-gpiommc_configfs_locking.patch
 
+
 cp openwrtsetup/865-gpiommc_dirry_hack.patch ./chaos_calmer/target/linux/generic/patches-3.18/
 
+
 ### Compile:
+
 
 cd chaos_calmer
 make prereq
 make -j3
 
-### Script to format the card on a pc as root (can have problems on router with formatting)
+
+### Script to format the card on a pc as root (I have problems on router with formatting, dd - it reboots)
+
+
+# Run nano scriptowrtsdcard
+# Run chmod +x scriptowrtsdcard
 
 # Insert and identify TOBESACRIFICEDSDCARD card with lsblk and specify on first line:
+
 
 TOBESACRIFICEDSDCARD=/dev/sdwhat
 swapoff $TOBESACRIFICEDSDCARD
@@ -94,7 +109,9 @@ sync
 sleep 2
 umount /mnt
 
+
 ### Prepare hardware adapter
+
 # With router powered off solder adapter
 # See pictures in:
 # https://docs.google.com/document/d/1X3RId3d9MDHeSq82_6cZ_VaBjYVX7T0hU396oFHsEdA/edit?pref=2&pli=1#
@@ -109,7 +126,32 @@ umount /mnt
 # Verify no short circuits or metalic parts near adapter and board
 
 # Power on router
-# Continue after ls /dev/mmc* gives results and dmesg | grep "DIRRY" gives results in OpenWrt
+
+
+
+### Configure router after ...factory.bin or erasing root
+
+
+telnet 192.168.1.1
+passwd
+
+
+# If does not work:
+# Disable network in network manager
+# Enable network in network manager
+
+
+sync
+reboot -f
+
+
+# Reboot for factory.bin
+# Close terminal after rebooting
+# Disable network in network manager
+# Enable network in network manager
+
+
+### Configure router after a sysupgrade (or continue from a factory.bin)
 
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
@@ -120,12 +162,24 @@ ssh root@192.168.1.1
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+
+# Continue after ls /dev/mmc* gives results and dmesg | grep "DIRRY" gives results in OpenWrt
+
+
 opkg update && opkg install block-mount
 rm /etc/modules-boot.d/mmc 
 sync
 reboot
 
-# This will force priority of mmc before mount-root, together with ln -s down
+
+# This will result, after a ln -s further down, in loading of mmc before mount-root
+
+
+# Reboot 1 of 3
+# Close terminal after rebooting
+# Disable network in network manager
+# Enable network in network manager
+
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
@@ -139,6 +193,7 @@ OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 # In OpenWRT ssh session (copy all and paste in terminal at once):
 # This exists already (is called from squashfs, add it if not existing for you):
 # src/gz chaos_calmer_base http://downloads.openwrt.org/chaos_calmer/15.05/ramips/rt305x/packages/base
+
 
 cd /etc/modules-boot.d/ && ln -s ../modules.d/mmc mmc
 cat <<EOF > /etc/opkg.conf
@@ -166,6 +221,16 @@ EOF
 sync
 reboot -f
 
+
+# This will load mmc before root, add opkg repositories and optimize Linux kernel
+
+
+# Reboot 2 of 3
+# Close terminal after rebooting
+# Disable network in network manager
+# Enable network in network manager
+
+
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 ssh root@192.168.1.1
@@ -179,22 +244,25 @@ mount -t ext4 /dev/mmcblk0 /mnt
 mv /mnt/upper/swapfile /mnt
 rm -rf /mnt/upper
 rm -rf /mnt/work
+block detect > /etc/config/fstab
+sed -i 's/\/mnt\/mmcblk0/\/overlay/g' /etc/config/fstab
+vi /etc/config/fstab
+
+
+# sed command with \x20 and \x27 does not work - need to make all enabled '0' be enabled '1'
+# press i, modify, press esc, write ":wq!" enter
+
+
+# It seems that fstab with /overlay enabled 1 on /dev/mmcblk (or it's UUID) needs to
+# be both in overlay and extroot, and then you can continue to add entries in extroot
+# That's why fstab is configured before copying overlay to extroot
+
 tar -C /overlay -cvf - . | tar -C /mnt -xf -
 sync
 mkdir -p /mnt/upper/overlay-boot
 mv /mnt/swapfile /mnt/upper
-block detect > /etc/config/fstab
-sed -i 's/\/mnt\/mmcblk0/\/overlay/g' /etc/config/fstab
 mkdir -p /mnt/upper/etc/config
-cat <<EOF > /mnt/upper/etc/config/fstab
-config 'global'
-        option  anon_swap       '0'
-        option  anon_mount      '0'
-        option  auto_swap       '1'
-        option  auto_mount      '1'
-        option  delay_root      '5'
-        option  check_fs        '0'
-        
+cat <<EOF >> /mnt/upper/etc/config/fstab
 config 'swap'
    option  device  '/swapfile'
    option  enabled '1'
@@ -213,24 +281,34 @@ mmc_spi
 EOF
 sync
 umount /mnt
-vi /etc/config/fstab
 
 
-# sed command with \x20 and \x27 does not work - make all enabled '0' be enabled '1'
 # press i, modify, press esc, write ":wq!" enter
 # to restore back, can put enabled '0' at /overlay in /overlay-boot/etc/config/fstab
 
-### Reboot router (for me it mounts card as root after this):
+
+# Using dd results in router rebooting, old swapfile is kept intact
+# If it doesn't work:
+# Run swapoff /swapfile && mkswap /swapfile && swapon /swapfile
+
+
+### Final reboot (for me it mounts card as root after this):
+
 
 sync
 reboot -f
 
+
+# This prepares and activates extroot
+
+
+# Reboot 3 of 3
 # Close terminal after rebooting
 # Disable network in network manager
 # Enable network in network manager
 
 
-### Check that this worked
+### Check that this extroot worked, with swap, and install programs
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
@@ -240,13 +318,31 @@ ssh root@192.168.1.1
 
 OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+free -m
 df -h /
 df -h
 dmesg | grep mmc
 opkg update
 sync
-opkg install transmission-daemon transmission-web samba36-server luci luci-app-samba nano mc swap-utils
 mkdir /torrents
+opkg install transmission-daemon transmission-web samba36-server luci luci-app-samba nano mc 
+sync
+reboot -f
+
+
+### Troubleshooting
+
+
+# Most problems come from DIRRY HACK not reaching the image, this must give results:
+
+
+dmesg | grep DIRRY
+
+
+# Swap does not appear (maybe extroot is corrupt - redo it) or try:
+
+
+opkg update && opkg install swap-utils
 uci set fstab.@swap[-1].device=/swapfile
 uci set fstab.@swap[-1].enabled=1
 uci commit fstab
@@ -254,17 +350,14 @@ sync
 reboot -f
 
 
-### Troubleshooting
-
-# Most problems come from DIRRY HACK not reaching the image, this must give results:
-
-dmesg | grep DIRRY
-
 ### Restore back to original root if you want or need to
 
-# put enabled '0' at /overlay in /overlay-boot/etc/config/fstab
+
+# put enabled '0' at /overlay in /overlay-boot/upper/etc/config/fstab
+
 
 ### Reset button does not work not even for failsafe so don't get locked out of router
+
 
 # By powering off router and removing corrupt sdcard the rooter boots in original root
 # So don't get locked out of original root :D
@@ -272,5 +365,3 @@ dmesg | grep DIRRY
 # http://johanbijker.blogspot.ro/2012/07/tp-link-mr3420-serial-connection-with.html
 # So don't corrupt your original root (hard to corrupt if using extroot always)
 # Be careful - original root overlay is in /overlay-boot
-
-
