@@ -1,0 +1,25 @@
+# Place me in /etc/hotplug.d/iface/99-keepwanalive
+
+if [ "$ACTION" = "ifdown" -a "$INTERFACE" = "wan" ]; then
+
+  COUNTER=0
+  PASS=0
+  
+  while [ $PASS -eq 0 ]
+  do
+    grep "up" /sys/class/net/eth0/operstate > /dev/null
+  
+    if [ $? != "up" ]; then
+  
+      let COUNTER++
+      logger -t DEBUG "Attempt #${COUNTER} to reconnect wan"
+  
+      ifup wan
+      sleep 15 #sec
+      
+    else
+      PASS=1
+    fi
+  done
+
+fi
