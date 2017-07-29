@@ -1,3 +1,4 @@
+cat <<EOF > /etc/hotplug.d/iface/99-keepwanalive
 # Place me in /etc/hotplug.d/iface/99-keepwanalive
 
 if [ "$ACTION" = "ifdown" -a "$INTERFACE" = "wan" ]; then
@@ -23,3 +24,4 @@ if [ "$ACTION" = "ifdown" -a "$INTERFACE" = "wan" ]; then
   done
 
 fi
+EOF
