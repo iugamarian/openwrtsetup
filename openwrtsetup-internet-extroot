@@ -78,10 +78,11 @@ OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 df -h /
 opkg update
-opkg install blkid block-mount e2fsprogs fdisk lsblk kmod-usb-storage kmod-usb-storage-extras kmod-fs-ext4 kmod-fs-vfat mkdosfs nano ntfs-3g resize2fs tune2fs
+opkg install blkid block-mount e2fsprogs fdisk lsblk kmod-usb-storage kmod-usb-storage-extras kmod-fs-ext4 kmod-fs-vfat nano ntfs-3g resize2fs tune2fs
 sync
 #Configuring block-mount.
 #this file has been obsoleted. please call "/sbin/block mount" directly
+#  mkdosfs = can't install
 df -h /
 reboot -f
 
@@ -123,7 +124,12 @@ umount /dev/sda
 umount /dev/sda1
 umount /dev/sda2
 umount /dev/sda3
+dd if=/dev/zero of=/dev/sda1 bs=1M count=32
+dd if=/dev/zero of=/dev/sda2 bs=1M count=32
+dd if=/dev/zero of=/dev/sda3 bs=1M count=32
+# Last three dd's are required for surely removing Ubuntu persistence partitions
 dd if=/dev/zero of=/dev/sda bs=1M count=32
+block info
 mke2fs -t ext4 -m 0 -F -L EXTRWRT -E lazy_itable_init=0,lazy_journal_init=0 /dev/sda
 mount -t ext4 /dev/sda /mnt
 tar -C /overlay -cvf - . | tar -C /mnt -xf -
