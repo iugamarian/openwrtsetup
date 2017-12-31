@@ -80,6 +80,8 @@ df -h /
 opkg update
 opkg install blkid block-mount e2fsprogs fdisk lsblk kmod-usb-storage kmod-usb-storage-extras kmod-fs-ext4 kmod-fs-vfat mkdosfs nano ntfs-3g resize2fs tune2fs
 sync
+#Configuring block-mount.
+#this file has been obsoleted. please call "/sbin/block mount" directly
 df -h /
 reboot -f
 
