@@ -26,12 +26,12 @@ start_service() {
 
 #!/bin/sh /etc/rc.common
     date > /500gbhdd/datestarted
-	date > /700gbhdd/datestarted
+    date > /700gbhdd/datestarted
     sleep 15
 while [ true ] 
 do  
     date > /500gbhdd/datefinished
-	date > /700gbhdd/datefinished
+    date > /700gbhdd/datefinished
     sleep 15
 done
 
