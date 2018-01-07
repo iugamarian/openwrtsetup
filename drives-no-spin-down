@@ -1,3 +1,11 @@
+http://blog.kerematam.com/2016/12/creating-script-to-run-on-boot-for.html
+
+========================
+
+/etc/init.d/statusondate
+
+========================
+
 #!/bin/sh /etc/rc.common
 
 # it is run order of your script, make it high to not mess up with other init scripts
