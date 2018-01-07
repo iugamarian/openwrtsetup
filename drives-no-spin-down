@@ -1,0 +1,39 @@
+#!/bin/sh /etc/rc.common
+
+# it is run order of your script, make it high to not mess up with other init scripts
+START=100 
+
+USE_PROCD=1
+
+start_service() {
+  procd_open_instance
+  procd_set_param command ash /bin/statusondate.sh
+}
+
+========================
+
+/bin/statusondate.sh
+
+========================
+
+#!/bin/sh /etc/rc.common
+    date > /500gbhdd/datestarted
+	date > /700gbhdd/datestarted
+    sleep 15
+while [ true ] 
+do  
+    date > /500gbhdd/datefinished
+	date > /700gbhdd/datefinished
+    sleep 15
+done
+
+
+===========================
+
+chmod +x /bin/statusondate.sh
+
+chmod +x /etc/init.d/statusondate
+
+/etc/init.d/statusondate enable
+
+service statusondate start
