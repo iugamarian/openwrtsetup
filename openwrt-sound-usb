@@ -15,3 +15,52 @@ reboot -f
 speaker-test -Dplug:front -c2 -tsine -f440
 
 And then install a player and adapt my bshplyr.
+
+# http://h-wrt.com/en/doc/sound
+
+Now when you have the possibility to install more packages from local repository, all the new packages on the configuration stage will be marked with <M>. They will be done as modules, which can be installed later at any moment.
+
+At the stage of configuration OpenWrt the following modules are to be selected:
+Kernel modules:
+Sound Support:
+<M> Kmod-sound-core
+<M> Kmod-usb-audio
+Sound:
+<M> Madplay
+
+Install:
+root @ OpenWrt: / # opkg update
+root @ OpenWrt: / # opkg install kmod-sound-core kmod-usb-audio madplay
+Installing kmod-sound-core (2.6.36-1) to root ...
+Downloading ftp://ftp:ftp @ 192.168.1.9/kmod-sound-core_2.6.36-1_brcm47xx.ipk.
+Installing kmod-input-core (2.6.36-1) to root ...
+Downloading ftp://ftp:ftp @ 192.168.1.9/kmod-input-core_2.6.36-1_brcm47xx.ipk.
+Installing kmod-usb-audio (2.6.36-1) to root ...
+Downloading ftp://ftp:ftp @ 192.168.1.9/kmod-usb-audio_2.6.36-1_brcm47xx.ipk.
+Installing madplay (0.15.2b-3) to root ...
+Downloading ftp://ftp:ftp @ 192.168.1.9/madplay_0.15.2b-3_brcm47xx.ipk.
+Installing libid3tag (0.15.1b-3) to root ...
+Downloading ftp://ftp:ftp @ 192.168.1.9/libid3tag_0.15.1b-3_brcm47xx.ipk.
+Installing zlib (1.2.5-1) to root ...
+Downloading ftp://ftp:ftp @ 192.168.1.9/zlib_1.2.5-1_brcm47xx.ipk.
+Installing libmad (0.15.1b-3) to root ...
+Downloading ftp://ftp:ftp @ 192.168.1.9/libmad_0.15.1b-3_brcm47xx.ipk.
+Configuring kmod-input-core.
+Configuring zlib.
+Configuring libid3tag.
+Configuring libmad.
+Configuring madplay.
+Configuring kmod-sound-core.
+Configuring kmod-usb-audio.
+
+Connect your sound card and look at information about it:
+root @ OpenWrt: / # cat / proc / asound / cards
+0 [Set]: USB-Audio - USB Headphone Set
+USB Headphone Set at usb-ssb0 :1-1 .3, full speed
+
+Listen to the music:
+root @ OpenWrt: / # madplay / home/song.mp3
+
+listen to the internet radio:
+wget-q-O-http://w01-cn01.akadostream.ru:8000/europaplus128.mp3 | madplay - 
+
