@@ -1,0 +1,29 @@
+/etc/init.d/bshplyr-init
+
+========================
+
+#!/bin/sh /etc/rc.common
+
+# it is run order of your script, make it high to not mess up with other init scripts
+START=100 
+
+USE_PROCD=1
+
+start_service() {
+  procd_open_instance
+  procd_set_param command ash /bin/bshplyr-openwrt
+}
+
+========================
+
+===========================
+
+cp bshplyr-openwrt /bin
+
+chmod +x /bin/bshplyr-openwrt
+
+chmod +x /etc/init.d/bshplyr-init
+
+/etc/init.d/bshplyr-init enable
+
+service statusondate start
