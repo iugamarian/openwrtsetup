@@ -30,4 +30,4 @@ chmod +x /etc/init.d/bshplyr-init
 
 /etc/init.d/bshplyr-init enable
 
-service statusondate start
+service bshplyr-init start
