@@ -1,0 +1,17 @@
+# https://medium.com/openwrt-iot/openwrt-setting-up-a-usb-audio-device-907486e5eb56
+# https://wiki.openwrt.org/doc/howto/usb.audio
+# a lot of space required => do this ofter you have extroot or have a lot of space
+
+opkg update
+
+opkg install kmod-usb-audio kmod-sound-core usbutils
+
+opkg install alsa-libs libsndfile alsa-utils alsa-utils-tests
+
+sync
+
+reboot -f
+
+speaker-test -Dplug:front -c2 -tsine -f440
+
+And then install a player and adapt my bshplyr.
