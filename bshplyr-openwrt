@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Song destroyer mode - deletes song when delete button pressed
+
+PLAYERBIN="/usr/bin/madplay"
+PLAYLIST_SAVED_FILE="/root/saved"
+SONGFILE=""	# path to the song to be played
+PATH_MOD="/overlay/music/"
+PLAYLIST="/root/playlist" # /tmp on Raspbian is not a tmpfs but /run is
+PLAYLIST_RECENT_LINE=$[$(cat "$PLAYLIST_SAVED_FILE")]
+PLAYLIST_LASTLINE="0"
+
+#### [ BOOTING ] ####
+
+# Lite boot delay (no x server)
+/bin/sleep 10
+amixer sset 'Speaker' 50%
+
+#### [ PLAYLIST ] ####
+
+# This will not also be called after a song delete, avoided with sed
+
+# /tmp on Arch is not always a tmpfs so do few writes (call this rarely)
+rm "$PLAYLIST"
+#find "$PATH_MOD" -iname "*.wav" -exec echo {} >> "$PLAYLIST" \;
+#find "$PATH_MOD" -iname "*.flac" -exec echo {} >> "$PLAYLIST" \;
+find "$PATH_MOD" -iname "*.mp3" -exec echo {} >> "$PLAYLIST" \;
+#find "$PATH_MOD" -iname "*.ogg" -exec echo {} >> "$PLAYLIST" \;
+#find "$PATH_MOD" -iname "*.mp4" -exec echo {} >> "$PLAYLIST" \;
+#ls -1 "$PATH_MOD" > "$PLAYLIST"
+# Detect if music has been found, if not exit
+if [ -f "$PLAYLIST" ]
+then
+	PLAYLIST_LASTLINE=`cat "$PLAYLIST" | wc -l`
+else
+	exit
+fi
+# Tested and playlist can exist but have zero songs so avoid that too
+if [ "$PLAYLIST_LASTLINE" -lt "1" ]
+then
+	exit
+fi
+
+# Avoid a saved song number larger than the number of songs
+if [ "$PLAYLIST_RECENT_LINE" -gt "$PLAYLIST_LASTLINE" ]
+then
+PLAYLIST_RECENT_LINE="1"
+fi
+
+#### [ CONTROL LOOP THAT REPEATS INFINETLY ] ####
+
+while true
+do
+	# Determine the song by wanted line in the playlist (path and filename)
+	SONGFILE=`cat "$PLAYLIST" | sed -n "$PLAYLIST_RECENT_LINE"p`
+	# Write all changes to disk (before starting the player)
+	sync
+	# Starting the player, when " &" at the end, the script continues without waiting to finish command to the left
+	"$PLAYERBIN" "$SONGFILE"
+	if [ "$PLAYLIST_RECENT_LINE" -eq "$PLAYLIST_LASTLINE" ]
+	then
+	PLAYLIST_RECENT_LINE="1"
+	else
+	PLAYLIST_RECENT_LINE=$((PLAYLIST_RECENT_LINE+1))
+	fi
+	# Will write changes to disk just before starting the player
+	START_PLAYER="1"
+	# Save playlist position
+	echo "$PLAYLIST_RECENT_LINE" > "$PLAYLIST_SAVED_FILE"
+done
