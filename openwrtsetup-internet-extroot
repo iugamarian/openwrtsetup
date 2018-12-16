@@ -130,7 +130,7 @@ dd if=/dev/zero of=/dev/sda3 bs=1M count=32
 # Last three dd's are required for surely removing Ubuntu persistence partitions
 dd if=/dev/zero of=/dev/sda bs=1M count=32
 block info
-mke2fs -t ext4 -m 0 -F -L EXTRWRT -E lazy_itable_init=0,lazy_journal_init=0 /dev/sda
+mke2fs -t ext4 -m 0 -F -O ^64bit -L EXTRWRT -E lazy_itable_init=0,lazy_journal_init=0 /dev/sda
 mount -t ext4 /dev/sda /mnt
 tar -C /overlay -cvf - . | tar -C /mnt -xf -
 dd if=/dev/zero of=/mnt/upper/swapfile bs=1M count=128
