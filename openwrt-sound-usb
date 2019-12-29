@@ -75,8 +75,8 @@ This command will play the radio on the sound card:
 
 wget -q -O - http://air.radiorecord.ru:8101/rr_128 | madplay -
 
-You can make it as a radio script but add a big sleep before to allow router to get internet first.
+You can listen after closing the ssh shell if you add " &" at the end of the command and ENTER and exit.
 
 To stop playing use "ps -w | grep madplay" and "kill -9 number" or reboot the router.
 
-You can listen after closing the ssh shell if you add " &" at the end of the command and ENTER and exit.
+You can make it as a radio script but add a big sleep before to allow router to get internet first.
