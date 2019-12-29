@@ -6,7 +6,7 @@ opkg update
 
 opkg install kmod-usb-audio kmod-sound-core usbutils
 
-opkg install alsa-libs libsndfile alsa-utils alsa-utils-tests
+opkg install alsa-lib libsndfile alsa-utils alsa-utils-tests
 
 sync
 
@@ -53,7 +53,7 @@ Configuring madplay.
 Configuring kmod-sound-core.
 Configuring kmod-usb-audio.
 
-Connect your sound card and look at information about it:
+Connect your sound USB card and look at information about it:
 root @ OpenWrt: / # cat / proc / asound / cards
 0 [Set]: USB-Audio - USB Headphone Set
 USB Headphone Set at usb-ssb0 :1-1 .3, full speed
@@ -61,6 +61,18 @@ USB Headphone Set at usb-ssb0 :1-1 .3, full speed
 Listen to the music:
 root @ OpenWrt: / # madplay / home/song.mp3
 
-listen to the internet radio:
-wget-q-O-http://w01-cn01.akadostream.ru:8000/europaplus128.mp3 | madplay - 
+Listen to the internet radio streaming:
 
+Browse to http://dir.xiph.org/by_format/MP3
+
+Save listen.m3u
+
+Inside get for example:
+
+http://air.radiorecord.ru:8101/rr_128
+
+This command will play the radio on the sound card:
+
+wget -q -O - http://air.radiorecord.ru:8101/rr_128 | madplay -
+
+You can make it as a radio script but add a big sleep before to allow router to get internet first.
