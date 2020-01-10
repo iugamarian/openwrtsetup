@@ -4,7 +4,7 @@
 
 opkg update
 
-opkg install kmod-usb-audio kmod-sound-core usbutils
+opkg install kmod-usb-audio kmod-sound-core usbutils wget
 
 opkg install alsa-lib libsndfile alsa-utils alsa-utils-tests
 
